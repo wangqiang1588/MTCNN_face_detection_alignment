@@ -83,6 +83,78 @@ void ScanList(string root_folder, CascadeCNN cascade) {
   }
 }
 
+void TestFDDBPrecision(CascadeCNN& cascade, string fddb_folder = "G:\\FDDB\\", bool save = true, bool show = false) {
+  string list_folder = fddb_folder + "FDDB-folds\\";
+  int total = 0, match = 0;
+  FILE *fpout = fopen((list_folder + "FDDB-RectangleList.txt").c_str(), "w");
+  FILE *fp = fopen((list_folder + "FDDB-EllipseList.txt").c_str(), "r");
+  char image_filename[255], last_filename[255];
+  int count;
+  while (!feof(fp)) {
+    vector<RotatedRect> rects;
+    int this_total = 0, this_match = 0;
+    fscanf(fp, "%s\n", image_filename);
+    if (strcmp(image_filename, last_filename) == 0) break;
+    strcpy(last_filename, image_filename);
+    Mat image = imread(fddb_folder + image_filename + ".jpg");
+    vector <vector<Point2d>> points;
+    auto result = cascade.GetDetection(image, 12.0 / 12.0, 0.7, true, 0.7, show, points);
+    if (save) {
+      fprintf(fpout, "%s\n", image_filename);
+      fprintf(fpout, "%d\n", result.size());
+      for (auto& r : result) {
+        //r.first.y -= r.first.height * 0.1;
+        //r.first.height *= 1.2;
+        //r.first.width *= 1.2;
+        //fixRect(r.first, image.size());
+        fprintf(fpout, "%f %f %f %f %f\n", r.first.x, r.first.y, r.first.width, r.first.height, r.second);
+      }
+    }
+    fscanf(fp, "%d", &count);
+    for (int c = 0; c < count; c++) {
+      RotatedRect r;
+      fscanf(fp, "%f %f %f %f %f 1", &r.size.width, &r.size.height, &r.angle, &r.center.x, &r.center.y);
+      //r.center.y += r.size.height * 0.2;
+      r.size.height *= 2;
+      r.size.width *= 2;
+      r.angle *= 180 / CV_PI;
+      bool matched = false;
+      for (auto& rect : result) {
+        if (IoU(rect.first, r, image.size()) > 0.5) {
+          matched = true;
+        }
+      }
+      if (matched) match++, this_match++;
+      total++;
+      this_total++;
+      rects.push_back(r);
+      //ellipse(image, r, Scalar(255, 0, 0));
+      //rectangle(image, r.boundingRect(), Scalar(255, 0, 0), 1);
+    }
+    cout << image_filename << " " << this_match << this_total << endl;
+    if (show) {
+      //if (this_match != this_total) {
+      for (auto& r : rects) {
+        ellipse(image, r, Scalar(255, 0, 0), 1);
+        //rectangle(image,r.boundingRect(), Scalar(255, 0, 0), 1);
+      }
+      for (auto& p : points) {
+        for (int j = 0; j < 5; j++) {
+          circle(image, p[j], 2, Scalar(0, 255, 255), -1);
+        }
+      }
+      for (auto& rect : result) {
+        rectangle(image, rect.first, Scalar(0, 0, 255), 1);
+      }
+      imshow("image", image);
+      waitKey(0);
+      // }
+    }
+  }
+  fclose(fp);
+  fclose(fpout);
+  cout << "total recall:" << (double)match / (double)total * 100 << "%" << endl;
+}
 
 int main(int argc, char* argv[])
 {
@@ -102,7 +174,7 @@ int main(int argc, char* argv[])
   //ScanList("H:\\lfw\\list.txt", cascade);
   //Mat image = imread("D:\\face project\\WIDER\\face_detection\\oscar1.jpg");
   //Mat image = imread("G:\\WIDER\\face_detection\\pack\\1[00_00_26][20160819-181452-0].BMP");
-  Mat image = imread("D:\\face project\\FDDB\\2003/01/13/big/img_1087.jpg");
+  Mat image = imread("D:\\face project\\FDDB\\2002/07/25/big/img_1047.jpg");
   //Mat image = imread("D:\\face project\\FDDB\\2003/01/13/big/img_1087.bmp");
   cout << image.cols<<","<<image.rows << endl;
   vector<vector<Point2d>> points;
@@ -131,7 +203,7 @@ int main(int argc, char* argv[])
   imshow("final", image);
   waitKey(0);
   //imwrite("output.jpg", image);
-  cascade.TestFDDBPrecision("D:\\face project\\FDDB\\", true, true);
+  TestFDDBPrecision(cascade, "D:\\face project\\FDDB\\", true, true);
   system("pause");
 	return 0;
 }
