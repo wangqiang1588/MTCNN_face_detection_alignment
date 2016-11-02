@@ -14,3 +14,10 @@ CascadeCNN = CascadeFaceDetection.CascadeCNN(model_folder + "det1-memory.prototx
                      0)
 I = cv2.imread("c:/lena.png")
 result = CascadeCNN.Predict(I, 0.96)
+for face in result:
+    cv2.rectangle(I, (int(face[0][0]), int(face[0][1])), (int(face[0][0]+face[0][2]), int(face[0][1]+face[0][3])), (255, 255, 255))
+    for i in range(5):
+        cv2.circle(I, (int(face[2][i][0]), int(face[2][i][1])), 1, (0, 0, 255), 2)
+
+cv2.imshow("detection result", I)
+cv2.waitKey(0)
