@@ -21,9 +21,18 @@
     <ClInclude Include="CascadeFaceDetection.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="pyboostcvconverter.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CascadeFaceDetection.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="pyboost_cv3_converter.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="python_module.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

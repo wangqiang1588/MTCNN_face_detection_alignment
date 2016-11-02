@@ -7,20 +7,25 @@
 #endif
 
 #include <opencv2\opencv.hpp>
+#include <Python.h>
 
 namespace FaceInception {
   struct FaceInformation {
-    std::vector<cv::Rect2d> boundingbox;
-    std::vector<float> confidence;
-    std::vector<std::vector<cv::Point2d>> points;
+    cv::Rect2d boundingbox;
+    float confidence;
+    std::vector<cv::Point2d> points;
   };
   class CASCADE_DLL CascadeFaceDetection {
   public:
     CascadeFaceDetection();
     CascadeFaceDetection(std::string net12_definition, std::string net12_weights,
                          std::string net24_definition, std::string net24_weights,
-                         std::string net48_definition, std::string net48_weights);
-    FaceInformation Predict(cv::Mat& input_image, double min_confidence = 0.995);
+                         std::string net48_definition, std::string net48_weights,
+                         std::string netLoc_definition, std::string netLoc_weights,
+                         int gpu_id = -1);
+    std::vector<FaceInformation> Predict(cv::Mat& input_image, double min_confidence = 0.96);
+    PyObject* Predict(PyObject* input);
+    PyObject* Predict(PyObject* input, PyObject * min_confidence);
     ~CascadeFaceDetection();
   };
 }

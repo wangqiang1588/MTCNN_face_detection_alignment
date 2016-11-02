@@ -175,6 +175,7 @@ int main(int argc, char* argv[])
   //Mat image = imread("D:\\face project\\WIDER\\face_detection\\oscar1.jpg");
   //Mat image = imread("G:\\WIDER\\face_detection\\pack\\1[00_00_26][20160819-181452-0].BMP");
   Mat image = imread("D:\\face project\\FDDB\\2002/07/25/big/img_1047.jpg");
+  
   //Mat image = imread("D:\\face project\\FDDB\\2003/01/13/big/img_1087.bmp");
   cout << image.cols<<","<<image.rows << endl;
   vector<vector<Point2d>> points;
