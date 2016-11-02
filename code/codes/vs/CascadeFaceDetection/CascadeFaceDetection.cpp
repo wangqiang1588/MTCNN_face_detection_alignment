@@ -64,7 +64,7 @@ namespace FaceInception {
     std::vector<FaceInformation> result;
     vector<vector<Point2d>> points;
     if (cascade != NULL) {
-      auto rect_and_score = cascade->GetDetection(input_image, 12 / min_face, min_confidence, true, 0.3, true, points);
+      auto rect_and_score = cascade->GetDetection(input_image, 12.0 / min_face, min_confidence, true, 0.7, true, points);
       for (int i = 0; i < rect_and_score.size();i++) {
         result.push_back(FaceInformation{ rect_and_score[i].first, rect_and_score[i].second, points[i] });
       }
@@ -83,7 +83,7 @@ namespace FaceInception {
     Mat input_image;
     ERRWRAP2(input_image = FaceInception::fromNDArrayToMat(input));
     if (!input_image.data || !PyFloat_CheckExact(min_confidence) || !PyFloat_Check(min_face)) return nullptr;
-    auto faces = Predict(input_image, PyFloat_AsDouble(min_confidence), PyFloat_AsDouble(min_confidence));
+    auto faces = Predict(input_image, PyFloat_AsDouble(min_confidence), PyFloat_AsDouble(min_face));
     return pyopencv_from_face_info_vec(faces);
   }
 
