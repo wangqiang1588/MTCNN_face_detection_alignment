@@ -37,8 +37,8 @@ namespace FaceInception {
         //class_<std::vector<Point2d>>("pyvector_point2d")
         //  .def(vector_indexing_suite<std::vector<Point2d>>());
 
-        std::vector<FaceInformation>(CascadeFaceDetection::*Predict_func0)(cv::Mat&, double) = &CascadeFaceDetection::Predict;
-        PyObject*(CascadeFaceDetection::*Predict_func1)(PyObject*, PyObject*) = &CascadeFaceDetection::Predict;
+        std::vector<FaceInformation>(CascadeFaceDetection::*Predict_func0)(cv::Mat&, double, double) = &CascadeFaceDetection::Predict;
+        PyObject*(CascadeFaceDetection::*Predict_func1)(PyObject*, PyObject*, PyObject*) = &CascadeFaceDetection::Predict;
 
         class_<CascadeFaceDetection>("CascadeCNN", init<std::string, std::string,
                                      std::string, std::string,

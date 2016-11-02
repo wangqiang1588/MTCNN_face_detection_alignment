@@ -60,11 +60,11 @@ namespace FaceInception {
                          gpu_id);
   }
 
-  std::vector<FaceInformation> CascadeFaceDetection::Predict(cv::Mat& input_image, double min_confidence) {
+  std::vector<FaceInformation> CascadeFaceDetection::Predict(cv::Mat& input_image, double min_confidence, double min_face) {
     std::vector<FaceInformation> result;
     vector<vector<Point2d>> points;
     if (cascade != NULL) {
-      auto rect_and_score = cascade->GetDetection(input_image, 0.5, min_confidence, true, 0.3, true, points);
+      auto rect_and_score = cascade->GetDetection(input_image, 12 / min_face, min_confidence, true, 0.3, true, points);
       for (int i = 0; i < rect_and_score.size();i++) {
         result.push_back(FaceInformation{ rect_and_score[i].first, rect_and_score[i].second, points[i] });
       }
@@ -79,11 +79,11 @@ namespace FaceInception {
     return pyopencv_from_face_info_vec(faces);
   }
 
-  PyObject * CascadeFaceDetection::Predict(PyObject * input, PyObject * min_confidence) {
+  PyObject * CascadeFaceDetection::Predict(PyObject * input, PyObject * min_confidence, PyObject * min_face) {
     Mat input_image;
     ERRWRAP2(input_image = FaceInception::fromNDArrayToMat(input));
-    if (!input_image.data || !PyFloat_CheckExact(min_confidence)) return nullptr;
-    auto faces = Predict(input_image, PyFloat_AsDouble(min_confidence));
+    if (!input_image.data || !PyFloat_CheckExact(min_confidence) || !PyFloat_Check(min_face)) return nullptr;
+    auto faces = Predict(input_image, PyFloat_AsDouble(min_confidence), PyFloat_AsDouble(min_confidence));
     return pyopencv_from_face_info_vec(faces);
   }
 

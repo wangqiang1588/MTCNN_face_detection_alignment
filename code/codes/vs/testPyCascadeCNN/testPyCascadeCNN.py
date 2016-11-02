@@ -11,9 +11,11 @@ CascadeCNN = CascadeFaceDetection.CascadeCNN(model_folder + "det1-memory.prototx
                      model_folder + "det2-memory.prototxt", model_folder + "det2.caffemodel",
                      model_folder + "det3-memory.prototxt", model_folder + "det3.caffemodel",
                      model_folder + "det4-memory.prototxt", model_folder + "det4.caffemodel",
-                     0)
+                     0) # 0 means to use the first gpu, -1 means to use cpu.
 I = cv2.imread("c:/lena.png")
-result = CascadeCNN.Predict(I, 0.96)
+# CascadeCNN.Predict(image, min_threshold, min_face)
+result = CascadeCNN.Predict(I, 0.96, 24.0) # speed is slow in the first detection
+result = CascadeCNN.Predict(I, 0.96, 24.0)
 for face in result:
     cv2.rectangle(I, (int(face[0][0]), int(face[0][1])), (int(face[0][0]+face[0][2]), int(face[0][1]+face[0][3])), (255, 255, 255))
     for i in range(5):

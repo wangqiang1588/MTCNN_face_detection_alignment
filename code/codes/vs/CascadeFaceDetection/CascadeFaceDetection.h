@@ -23,9 +23,9 @@ namespace FaceInception {
                          std::string net48_definition, std::string net48_weights,
                          std::string netLoc_definition, std::string netLoc_weights,
                          int gpu_id = -1);
-    std::vector<FaceInformation> Predict(cv::Mat& input_image, double min_confidence = 0.96);
+    std::vector<FaceInformation> Predict(cv::Mat& input_image, double min_confidence = 0.96, double min_face = 24.0);
     PyObject* Predict(PyObject* input);
-    PyObject* Predict(PyObject* input, PyObject * min_confidence);
+    PyObject* Predict(PyObject* input, PyObject * min_confidence, PyObject * min_face);
     ~CascadeFaceDetection();
   };
 }
