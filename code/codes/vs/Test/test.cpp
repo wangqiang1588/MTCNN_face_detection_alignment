@@ -170,7 +170,7 @@ int main(int argc, char* argv[])
                      0);
   //CaptureDemo(cascade);
 
-  double min_face_size = 24;
+  double min_face_size = 12;
 
   //ScanList("H:\\lfw\\list.txt", cascade);
   Mat image = imread("D:\\face project\\WIDER\\face_detection\\test_image.jpg");

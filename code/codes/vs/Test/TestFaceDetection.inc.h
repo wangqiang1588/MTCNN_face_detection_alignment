@@ -73,9 +73,7 @@ namespace FaceInception {
       if (start_scale != 1) resize(start_image, start_image, Size(0, 0), start_scale, start_scale);
       vector<pair<Rect2d, float>> accumulate_rects;
       
-      while (start_image.rows > 100 || start_image.cols > 100) {//This number depends on how much GPU memory you have. Please test and modify it to get maximal speed.
-        //cout << "Performance Warning: Do not use pyramid stitching in big resolution images!" << endl;
-        //cout << "Decrease the resolution automatically..." << endl;
+      while (start_image.rows > 100 && start_image.cols > 100) {//This number depends on how much GPU memory you have. Please test and modify it to get maximal speed.
         auto net12output = kCaffeBinding->Forward({ start_image }, net12);
         if (!(net12output["bounding_box"].size[1] == 1 && net12output["bounding_box"].data[0] == 0)) {
           vector<pair<Rect2d, float>> before_nms;
@@ -97,37 +95,39 @@ namespace FaceInception {
         start_scale *= scale_decay_;
         resize(input_image, start_image, Size(0, 0), start_scale, start_scale);
       }
-      std::vector<std::pair<Rect, double>> location_and_scale;
-      Mat big_image = getPyramidStitchingImage2(start_image, location_and_scale);
-      Mat stitch_image_x = Mat::zeros((big_image.rows - 12 + 1) / 2 + 1, (big_image.cols - 12 + 1) / 2 + 1, CV_32FC1);
-      Mat stitch_image_y = Mat::zeros((big_image.rows - 12 + 1) / 2 + 1, (big_image.cols - 12 + 1) / 2 + 1, CV_32FC1);
-      Mat stitch_image_receptive_field = Mat::zeros((big_image.rows - 12 + 1) / 2 + 1, (big_image.cols - 12 + 1) / 2 + 1, CV_32FC1);
-      for (auto& ls : location_and_scale) {
-        Rect rectInOutput = Rect(max(ls.first.x / 2 - 1, 0), max(ls.first.y / 2 - 1, 0), (ls.first.width - 12 + 2) / 2, (ls.first.height - 12 + 2) / 2);
-        stitch_image_x(rectInOutput) = ls.first.y;
-        stitch_image_y(rectInOutput) = ls.first.x;
-        stitch_image_receptive_field(rectInOutput) = 12.0 / (ls.second*start_scale);
-      }
+      if (start_image.rows > 12 && start_image.cols > 12) {
+        std::vector<std::pair<Rect, double>> location_and_scale;
+        Mat big_image = getPyramidStitchingImage2(start_image, location_and_scale);
+        Mat stitch_image_x = Mat::zeros((big_image.rows - 12 + 1) / 2 + 1, (big_image.cols - 12 + 1) / 2 + 1, CV_32FC1);
+        Mat stitch_image_y = Mat::zeros((big_image.rows - 12 + 1) / 2 + 1, (big_image.cols - 12 + 1) / 2 + 1, CV_32FC1);
+        Mat stitch_image_receptive_field = Mat::zeros((big_image.rows - 12 + 1) / 2 + 1, (big_image.cols - 12 + 1) / 2 + 1, CV_32FC1);
+        for (auto& ls : location_and_scale) {
+          Rect rectInOutput = Rect(max(ls.first.x / 2 - 1, 0), max(ls.first.y / 2 - 1, 0), (ls.first.width - 12 + 2) / 2, (ls.first.height - 12 + 2) / 2);
+          stitch_image_x(rectInOutput) = ls.first.y;
+          stitch_image_y(rectInOutput) = ls.first.x;
+          stitch_image_receptive_field(rectInOutput) = 12.0 / (ls.second*start_scale);
+        }
 
-      Mat stitch_image;
-      merge(vector<Mat>{ stitch_image_receptive_field, stitch_image_y, stitch_image_x }, stitch_image);
-      kCaffeBinding->SetMemoryDataLayer("stitch_data", { stitch_image }, net12_stitch);
-      auto net12output = kCaffeBinding->Forward({ big_image }, net12_stitch);
+        Mat stitch_image;
+        merge(vector<Mat>{ stitch_image_receptive_field, stitch_image_y, stitch_image_x }, stitch_image);
+        kCaffeBinding->SetMemoryDataLayer("stitch_data", { stitch_image }, net12_stitch);
+        auto net12output = kCaffeBinding->Forward({ big_image }, net12_stitch);
 
-      //Mat stitch_image_x_trans = Mat::zeros((big_image.cols - 12 + 1) / 2 + 1, (big_image.rows - 12 + 1) / 2 + 1, CV_32FC1);
-      //stitch_image_x_trans.data = (uchar *)(net12output["conv4-2"].data + 1 * stitch_image_x_trans.rows * stitch_image_x_trans.cols);
-      //stitch_image_x_trans = stitch_image_x_trans.t();
-      //imshow("stitch_image_x_trans", stitch_image_x_trans);
-      //waitKey(0);
+        //Mat stitch_image_x_trans = Mat::zeros((big_image.cols - 12 + 1) / 2 + 1, (big_image.rows - 12 + 1) / 2 + 1, CV_32FC1);
+        //stitch_image_x_trans.data = (uchar *)(net12output["conv4-2"].data + 1 * stitch_image_x_trans.rows * stitch_image_x_trans.cols);
+        //stitch_image_x_trans = stitch_image_x_trans.t();
+        //imshow("stitch_image_x_trans", stitch_image_x_trans);
+        //waitKey(0);
 
-      //cout << "estimated output size:" << stitch_image_x.size() << endl;
-      //cout << "real output size:" << net12output["bb_map"].size[2] << " " << net12output["bb_map"].size[3] << endl;
+        //cout << "estimated output size:" << stitch_image_x.size() << endl;
+        //cout << "real output size:" << net12output["bb_map"].size[2] << " " << net12output["bb_map"].size[3] << endl;
 
-      if (!(net12output["bounding_box"].size[1] == 1 && net12output["bounding_box"].data[0] == 0)) {
-        for (int i = 0; i < net12output["bounding_box"].size[1]; i++) {
-          Rect2d this_rect = Rect2d(net12output["bounding_box"].data[i * 5 + 1], net12output["bounding_box"].data[i * 5],
-                                    net12output["bounding_box"].data[i * 5 + 3], net12output["bounding_box"].data[i * 5 + 2]);
-          accumulate_rects.push_back(make_pair(this_rect, net12output["bounding_box"].data[i * 5 + 4]));
+        if (!(net12output["bounding_box"].size[1] == 1 && net12output["bounding_box"].data[0] == 0)) {
+          for (int i = 0; i < net12output["bounding_box"].size[1]; i++) {
+            Rect2d this_rect = Rect2d(net12output["bounding_box"].data[i * 5 + 1], net12output["bounding_box"].data[i * 5],
+                                      net12output["bounding_box"].data[i * 5 + 3], net12output["bounding_box"].data[i * 5 + 2]);
+            accumulate_rects.push_back(make_pair(this_rect, net12output["bounding_box"].data[i * 5 + 4]));
+          }
         }
       }
 
