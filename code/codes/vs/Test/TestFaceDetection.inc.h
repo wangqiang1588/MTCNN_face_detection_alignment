@@ -11,6 +11,7 @@
 #include <fstream>
 #include <thread>
 #include <opencv2\opencv.hpp>
+#include <opencv2\cudaimgproc.hpp>
 #include "CaffeBinding.h"
 #include <boost/shared_ptr.hpp>
 
@@ -18,6 +19,21 @@
 #include "util/BoundingBox.inc.h"
 #undef assert
 #define assert(_Expression) if(!((_Expression)))printf("error: %s %d : %s\n", __FILE__, __LINE__, (#_Expression))
+#define USE_GPU_MAT 0
+#if USE_GPU_MAT
+#pragma comment(lib,"opencv_core310.lib")
+#pragma comment(lib,"opencv_imgcodecs310.lib")
+#pragma comment(lib,"opencv_highgui310.lib")
+#pragma comment(lib,"opencv_imgproc310.lib")
+#pragma comment(lib,"opencv_videoio310.lib")
+#pragma comment(lib,"opencv_objdetect310.lib")
+#pragma comment(lib,"opencv_cudaimgproc310.lib")
+#pragma comment(lib,"opencv_cudawarping310.lib")
+#pragma comment(lib,"opencv_cudaobjdetect310.lib")
+#pragma comment(lib,"opencv_video310.lib")
+#else
+#pragma comment(lib,"opencv_world310.lib")
+#endif
 extern std::shared_ptr<caffe::CaffeBinding> kCaffeBinding;
 
 using namespace cv;
@@ -33,25 +49,101 @@ namespace FaceInception {
   public:
     CascadeCNN() : scale_decay_(0.707) {}
     CascadeCNN(string net12_definition, string net12_weights,
+               string net12_stitch_definition, string net12_stitch_weights,
                string net24_definition, string net24_weights,
                string net48_definition, string net48_weights,
                string netLoc_definition, string netLoc_weights,
-               int gpu_id = -1, bool multi_threading = false) :
+               int gpu_id = -1) :
       scale_decay_(0.707) {
-      if (multi_threading) {
-        for (int i = 0; i < kMaxNet12Num; i++) {
-          net12s.push_back(kCaffeBinding->AddNet(net12_definition, net12_weights, gpu_id));
-        }
-      }
-      else {
-        net12 = kCaffeBinding->AddNet(net12_definition, net12_weights, gpu_id);
-      }
+      net12 = kCaffeBinding->AddNet(net12_definition, net12_weights, gpu_id);
+      net12_stitch = kCaffeBinding->AddNet(net12_stitch_definition, net12_stitch_weights, gpu_id);
       net24 = kCaffeBinding->AddNet(net24_definition, net24_weights, gpu_id);
       net48 = kCaffeBinding->AddNet(net48_definition, net48_weights, gpu_id);
       netLoc = kCaffeBinding->AddNet(netLoc_definition, netLoc_weights, gpu_id);
     }
 
-    vector<pair<Rect2d, float>> MultiThreadNet12Proposal(Mat& input_image, double min_confidence = 0.6, double start_scale = 1,
+    //Only work for small images.
+    vector<pair<Rect2d, float>> getNet12ProposalAcc(Mat& input_image, double min_confidence = 0.6, double start_scale = 1,
+                                                 bool do_nms = true, double nms_threshold = 0.3) {
+
+      int short_side = min(input_image.cols, input_image.rows);
+      assert(log(12.0 / start_scale / (double)short_side) / log(scale_decay_) < kMaxNet12Num);
+      std::chrono::time_point<std::chrono::system_clock> t0 = std::chrono::system_clock::now();
+      Mat start_image = input_image;
+      if (start_scale != 1) resize(start_image, start_image, Size(0, 0), start_scale, start_scale);
+      if (start_image.rows > 800 || start_image.cols > 800) {
+        cout << "Performance Warning: Do not use pyramid stitching in big resolution images!" << endl;
+        cout << "Decrease the resolution automatically..." << endl;
+        start_scale = 800.0 / (double)start_image.cols;
+        resize(start_image, start_image, Size(800, 800 * start_image.rows / start_image.cols));
+      }
+      std::vector<std::pair<Rect, double>> location_and_scale;
+      Mat big_image = getPyramidStitchingImage2(start_image, location_and_scale);
+      Mat stitch_image_x = Mat::zeros((big_image.rows - 12 + 1) / 2 + 1, (big_image.cols - 12 + 1) / 2 + 1, CV_32FC1);
+      Mat stitch_image_y = Mat::zeros((big_image.rows - 12 + 1) / 2 + 1, (big_image.cols - 12 + 1) / 2 + 1, CV_32FC1);
+      Mat stitch_image_receptive_field = Mat::zeros((big_image.rows - 12 + 1) / 2 + 1, (big_image.cols - 12 + 1) / 2 + 1, CV_32FC1);
+      for (auto& ls : location_and_scale) {
+        Rect rectInOutput = Rect(max(ls.first.x / 2 - 1, 0), max(ls.first.y / 2 - 1, 0), (ls.first.width - 12 + 2) / 2, (ls.first.height - 12 + 2) / 2);
+        stitch_image_x(rectInOutput) = ls.first.y;
+        stitch_image_y(rectInOutput) = ls.first.x;
+        stitch_image_receptive_field(rectInOutput) = 12.0 / (ls.second*start_scale);
+      }
+
+      Mat stitch_image;
+      merge(vector<Mat>{ stitch_image_receptive_field, stitch_image_y, stitch_image_x }, stitch_image);
+      kCaffeBinding->SetMemoryDataLayer("stitch_data", { stitch_image }, net12_stitch);
+      auto net12output = kCaffeBinding->Forward({ big_image }, net12);
+
+      //Mat stitch_image_x_trans = Mat::zeros((big_image.cols - 12 + 1) / 2 + 1, (big_image.rows - 12 + 1) / 2 + 1, CV_32FC1);
+      //stitch_image_x_trans.data = (uchar *)(net12output["conv4-2"].data + 1 * stitch_image_x_trans.rows * stitch_image_x_trans.cols);
+      //stitch_image_x_trans = stitch_image_x_trans.t();
+      //imshow("stitch_image_x_trans", stitch_image_x_trans);
+      //waitKey(0);
+
+      //cout << "estimated output size:" << stitch_image_x.size() << endl;
+      //cout << "real output size:" << net12output["bb_map"].size[2] << " " << net12output["bb_map"].size[3] << endl;
+
+
+      vector<pair<Rect2d, float>> accumulate_rects;
+      accumulate_rects.reserve(net12output["bounding_box"].size[1]);
+      if (!(net12output["bounding_box"].size[1] == 1 && net12output["bounding_box"].data[0] == 0)) {
+        for (int i = 0; i < net12output["bounding_box"].size[1]; i++) {
+          Rect2d this_rect = Rect2d(net12output["bounding_box"].data[i * 5 + 1], net12output["bounding_box"].data[i * 5],
+                                    net12output["bounding_box"].data[i * 5 + 3], net12output["bounding_box"].data[i * 5 + 2]);
+          accumulate_rects.push_back(make_pair(this_rect, net12output["bounding_box"].data[i * 5 + 4]));
+        }
+      }
+
+      vector<pair<Rect2d, float>> result;
+
+      if (do_nms) {
+        std::chrono::time_point<std::chrono::system_clock> p1 = std::chrono::system_clock::now();
+        vector<int> picked = nms_max(accumulate_rects, nms_threshold); 
+        for (auto& p : picked) {
+          //make_rect_square(rect_for_test[p].first);
+          result.push_back(accumulate_rects[p]);
+          
+        }
+        //nms_avg(rects, scores, nms_threshold);
+        cout << "nms time:" << (float)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - p1).count() / 1000 << "ms" << endl;
+      }
+      else {
+        result = accumulate_rects;
+      }
+
+      //for (auto& rect : result) {
+      //  if (rect.second > 0.6) {
+      //    rectangle(input_image, rect.first, Scalar(0, 255, 0), 1);
+      //  }
+      //}
+      //
+      //imshow("proposal", input_image);
+      //waitKey(0);
+
+      return result;
+    }
+
+    vector<pair<Rect2d, float>> getNet12Proposal(Mat& input_image, double min_confidence = 0.6, double start_scale = 1,
                                                          bool do_nms = true, double nms_threshold = 0.3) {
       int short_side = min(input_image.cols, input_image.rows);
       assert(log(12.0 / start_scale / (double)short_side) / log(scale_decay_) < kMaxNet12Num);
@@ -69,31 +161,43 @@ namespace FaceInception {
       } while (floor(input_image.rows * scale * scale_decay_) >= 12 && floor(input_image.cols * scale * scale_decay_) >= 12);
 
       vector<vector<pair<Rect2d, float>>> sub_rects(scales.size());
-      
+#if USE_GPU_MAT
+      cuda::GpuMat gpu_input_image;
+      gpu_input_image.upload(input_image);
+#endif
+
       for (int s = 0; s < scales.size(); s++) {
+        std::chrono::time_point<std::chrono::system_clock> p1 = std::chrono::system_clock::now();
         //net12_thread_group.create_thread([&]() {
-          Mat small_image;
-          resize(input_image, small_image, Size(0, 0), scales[s], scales[s]);
-          auto net12output = kCaffeBinding->Forward({ small_image }, net12);
-          if (!(net12output["bounding_box"].size[1] == 1 && net12output["bounding_box"].data[0] == 0)) {
-            vector<pair<Rect2d, float>> before_nms;
-            for (int i = 0; i < net12output["bounding_box"].size[1]; i++) {
-              Rect2d this_rect = Rect2d(net12output["bounding_box"].data[i * 5 + 1] / scales[s], net12output["bounding_box"].data[i * 5] / scales[s],
-                                        net12output["bounding_box"].data[i * 5 + 3] / scales[s], net12output["bounding_box"].data[i * 5 + 2] / scales[s]);
-              before_nms.push_back(make_pair(this_rect, net12output["bounding_box"].data[i * 5 + 4]));
-            }
-            if (do_nms && before_nms.size() > 1) {
-              vector<int> picked = nms_max(before_nms, 0.5);
-              for (auto p : picked) {
-                //cout << before_nms[p].first << " " << before_nms[p].second << endl;
-                sub_rects[s].push_back(before_nms[p]);
-              }
-            }
-            else {
-              sub_rects[s].insert(sub_rects[s].end(), before_nms.begin(), before_nms.end());
+        Mat small_image;
+#if USE_GPU_MAT
+        cuda::GpuMat gpu_small_image;
+        cuda::resize(gpu_input_image, gpu_small_image, Size(0, 0), scales[s], scales[s]);
+        gpu_small_image.download(small_image);
+#else
+        resize(input_image, small_image, Size(0, 0), scales[s], scales[s]);
+#endif
+        auto net12output = kCaffeBinding->Forward({ small_image }, net12);
+        if (!(net12output["bounding_box"].size[1] == 1 && net12output["bounding_box"].data[0] == 0)) {
+          vector<pair<Rect2d, float>> before_nms;
+          for (int i = 0; i < net12output["bounding_box"].size[1]; i++) {
+            Rect2d this_rect = Rect2d(net12output["bounding_box"].data[i * 5 + 1] / scales[s], net12output["bounding_box"].data[i * 5] / scales[s],
+                                      net12output["bounding_box"].data[i * 5 + 3] / scales[s], net12output["bounding_box"].data[i * 5 + 2] / scales[s]);
+            before_nms.push_back(make_pair(this_rect, net12output["bounding_box"].data[i * 5 + 4]));
+          }
+          if (do_nms && before_nms.size() > 1) {
+            vector<int> picked = nms_max(before_nms, 0.5);
+            for (auto p : picked) {
+              //cout << before_nms[p].first << " " << before_nms[p].second << endl;
+              sub_rects[s].push_back(before_nms[p]);
             }
           }
+          else {
+            sub_rects[s].insert(sub_rects[s].end(), before_nms.begin(), before_nms.end());
+          }
+        }
         //});
+        cout << "scale:" << scales[s] << " time:" << (float)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - p1).count() / 1000 << "ms" << endl;
       }
       //net12_thread_group.join_all();
       vector<pair<Rect2d, float>> accumulate_rects;
@@ -110,87 +214,10 @@ namespace FaceInception {
           result.push_back(accumulate_rects[p]);
         }
         //nms_avg(rects, scores, nms_threshold);
-        //for (auto& p : rects) {
-        //  result.push_back(make_pair<Rect2d, float>(Rect2d(p.x, p.y, p.width, p.height), 1.0f));
-        //}
         //cout << "nms time:" << (float)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - p1).count() / 1000 << "ms" << endl;
       }
       else {
         result = accumulate_rects;
-      }
-      return result;
-    }
-
-    vector<pair<Rect2d, float>> getNet12Proposal(Mat& input_image, double min_confidence = 0.6, double start_scale = 1,
-                                                 bool do_nms = true, double nms_threshold = 0.3) {
-      int short_side = min(input_image.cols, input_image.rows);
-      vector<Mat> pyramid;
-      Mat small_image;
-      std::chrono::time_point<std::chrono::system_clock> t0 = std::chrono::system_clock::now();
-      resize(input_image, small_image, Size(0, 0), start_scale, start_scale);
-
-      if (small_image.cols < 1200 && small_image.rows < 1200) {
-        pyramid.push_back(small_image);
-      }
-      do {
-        resize(small_image, small_image, Size(small_image.cols * scale_decay_, small_image.rows *scale_decay_));
-        if (small_image.cols < 1200 && small_image.rows < 1200) {
-          pyramid.push_back(small_image);
-        }
-      } while (floor(small_image.rows * scale_decay_) >= 12 && floor(small_image.cols * scale_decay_) >= 12);
-      //for (int i = 0; i<pyramid.size();i++) {
-      //  imshow("sub_image" + to_string(i), pyramid[i]);
-      //}
-      //waitKey(0);
-      assert(pyramid[pyramid.size() - 1].cols >= 12);
-      assert(pyramid[pyramid.size() - 1].rows >= 12);
-      cout << "pyramid time:" << (float)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - t0).count() / 1000 << "ms" << endl;
-
-      vector<pair<Rect2d, float>> rect_for_test;
-      for (int p = 0; p < pyramid.size(); p++) {
-        double scale = (double)pyramid[p].rows / (double)input_image.rows;
-        //std::chrono::time_point<std::chrono::system_clock> p1 = std::chrono::system_clock::now();
-        auto net12output = kCaffeBinding->Forward({ pyramid[p] }, net12);
-        //cout << "forward time:" << (float)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - p1).count() / 1000 << "ms" << endl;
-        //cout << "scale " << scale << " boxes:" << net12output["bounding_box"].size[1] << endl;
-        //cout << "size:" << net12output[0].size[0] << " " << net12output[0].size[1] << " " << net12output[0].size[2] << " " << net12output[0].size[3] << endl;
-        vector<pair<Rect2d, float>> rect_single_scale;
-        if (!(net12output["bounding_box"].size[1] == 1 && net12output["bounding_box"].data[0] == 0)) {
-          for (int i = 0; i < net12output["bounding_box"].size[1]; i++) {
-            Rect2d this_rect = Rect2d(net12output["bounding_box"].data[i * 5 + 1] / scale, net12output["bounding_box"].data[i * 5] / scale,
-                                      net12output["bounding_box"].data[i * 5 + 3] / scale, net12output["bounding_box"].data[i * 5 + 2] / scale);
-            /*if (checkRect(this_rect, input_image.size())) */{
-              rect_single_scale.push_back(make_pair(this_rect, net12output["bounding_box"].data[i * 5 + 4]));
-            }
-          }
-        }
-        if (do_nms) {
-          vector<int> picked = nms_max(rect_single_scale, 0.5);
-          for (auto& p : picked) {
-            rect_for_test.push_back(rect_single_scale[p]);
-          }
-        }
-        else {
-          rect_for_test.insert(rect_for_test.end(), rect_single_scale.begin(), rect_single_scale.end());
-        }
-      }
-      //cout << "boxes:" << rect_for_test.size() << endl;
-      vector<pair<Rect2d, float>> result;
-      if (do_nms) {
-        //std::chrono::time_point<std::chrono::system_clock> p1 = std::chrono::system_clock::now();
-        vector<int> picked = nms_max(rect_for_test, nms_threshold);
-        for (auto& p : picked) {
-          //make_rect_square(rect_for_test[p].first);
-          result.push_back(rect_for_test[p]);
-        }
-        //nms_avg(rects, scores, nms_threshold);
-        //for (auto& p : rects) {
-        //  result.push_back(make_pair<Rect2d, float>(Rect2d(p.x, p.y, p.width, p.height), 1.0f));
-        //}
-        //cout << "nms time:" << (float)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - p1).count() / 1000 << "ms" << endl;
-      }
-      else {
-        result = rect_for_test;
       }
 
       //for (auto& rect : result) {
@@ -362,7 +389,7 @@ namespace FaceInception {
                                              bool output_points = false, vector<vector<Point2d>>& points = vector<vector<Point2d>>()) {
       Mat clone_image = input_image.clone();//for drawing
       std::chrono::time_point<std::chrono::system_clock> p0 = std::chrono::system_clock::now();
-      auto proposal = MultiThreadNet12Proposal(clone_image, 0.6, start_scale, do_nms, nms_threshold);
+      auto proposal = getNet12Proposal(clone_image, 0.6, start_scale, do_nms, nms_threshold);
       std::chrono::time_point<std::chrono::system_clock> p1 = std::chrono::system_clock::now();
       cout << "proposal time:" << (float)std::chrono::duration_cast<std::chrono::microseconds>(p1 - p0).count() / 1000 << "ms" << endl;
       cout << "proposal: " << proposal.size() << endl;
@@ -421,11 +448,8 @@ namespace FaceInception {
       return final;
     }
 
-    int net12, net24, net48, netLoc;
-    vector<int> net12s;
-    thread_group net12_thread_group;
+    int net12, net12_stitch, net24, net48, netLoc;
     float scale_decay_;
-    vector<double> net12scales;
     int input_width, input_height;
   };
 }

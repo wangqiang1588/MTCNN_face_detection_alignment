@@ -169,12 +169,13 @@ int main(int argc, char* argv[])
                      0);
   //CaptureDemo(cascade);
 
-  double min_face_size = 12;
+  double min_face_size = 24;
 
   //ScanList("H:\\lfw\\list.txt", cascade);
-  //Mat image = imread("D:\\face project\\WIDER\\face_detection\\oscar1.jpg");
+  Mat image = imread("D:\\face project\\WIDER\\face_detection\\test_image.jpg");
+  
   //Mat image = imread("G:\\WIDER\\face_detection\\pack\\1[00_00_26][20160819-181452-0].BMP");
-  Mat image = imread("D:\\face project\\FDDB\\2002/07/25/big/img_1047.jpg");
+  //Mat image = imread("D:\\face project\\FDDB\\2002/07/25/big/img_1047.jpg");
   
   //Mat image = imread("D:\\face project\\FDDB\\2003/01/13/big/img_1087.bmp");
   cout << image.cols<<","<<image.rows << endl;
@@ -193,14 +194,16 @@ int main(int argc, char* argv[])
 
   for (int i = 0; i < result.size(); i++) {
     //cout << "face box:" << result[i].first << " confidence:" << result[i].second << endl;
-    rectangle(image, result[i].first, Scalar(255, 0, 0), 2);
+    rectangle(image, result[i].first, Scalar(255, 0, 0), 4);
     if (points.size() >= i + 1) {
       for (int p = 0; p < 5; p++) {
         circle(image, points[i][p], 2, Scalar(0, 255, 255), -1);
       }
     }
   }
-  //resize(image, image, Size(0, 0), 0.25, 0.25);
+  while (image.cols > 1000) {
+    resize(image, image, Size(0, 0), 0.75, 0.75);
+  }
   imshow("final", image);
   waitKey(0);
   //imwrite("output.jpg", image);

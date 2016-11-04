@@ -137,6 +137,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;CASCADEFACEDETECTION_EXPORTS;BOOST_PYTHON_STATIC_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>D:\deepLearning\mscaffe\windows\caffe.binding;D:\Anaconda2\include;D:\Anaconda2\Lib\site-packages\numpy\core\include;D:\deeplearning\mscaffe\windows\thirdparty\OpenCV\include;D:\ThirdPartyLibrary\boost_1_62_0</AdditionalIncludeDirectories>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
