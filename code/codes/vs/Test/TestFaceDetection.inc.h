@@ -34,7 +34,7 @@
 #else
 #pragma comment(lib,"opencv_world310.lib")
 #endif
-extern std::shared_ptr<caffe::CaffeBinding> kCaffeBinding;
+extern caffe::CaffeBinding* kCaffeBinding;
 
 using namespace cv;
 using namespace std;
@@ -73,7 +73,8 @@ namespace FaceInception {
       if (start_scale != 1) resize(start_image, start_image, Size(0, 0), start_scale, start_scale);
       vector<pair<Rect2d, float>> accumulate_rects;
       
-      while (start_image.rows > 100 && start_image.cols > 100) {//This number depends on how much GPU memory you have. Please test and modify it to get maximal speed.
+      //This number(20000) depends on how much GPU memory you have. Please test and modify it to get maximal speed.
+      while (start_image.rows * start_image.cols > 20000 && start_image.rows > 12 && start_image.cols > 12) {
         auto net12output = kCaffeBinding->Forward({ start_image }, net12);
         if (!(net12output["bounding_box"].size[1] == 1 && net12output["bounding_box"].data[0] == 0)) {
           vector<pair<Rect2d, float>> before_nms;
@@ -93,7 +94,7 @@ namespace FaceInception {
           }
         }
         start_scale *= scale_decay_;
-        resize(input_image, start_image, Size(0, 0), start_scale, start_scale);
+        resize(start_image, start_image, Size(input_image.cols * start_scale, input_image.rows * start_scale));
       }
       if (start_image.rows > 12 && start_image.cols > 12) {
         std::vector<std::pair<Rect, double>> location_and_scale;

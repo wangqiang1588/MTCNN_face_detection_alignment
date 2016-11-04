@@ -44,6 +44,7 @@ namespace FaceInception {
                                      std::string, std::string,
                                      std::string, std::string,
                                      std::string, std::string,
+                                     std::string, std::string,
                                      int>())
           .def("Predict", Predict_func1);
     }

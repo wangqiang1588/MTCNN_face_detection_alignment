@@ -19,6 +19,7 @@ namespace FaceInception {
   public:
     CascadeFaceDetection();
     CascadeFaceDetection(std::string net12_definition, std::string net12_weights,
+                         std::string net12_stitch_definition, std::string net12_stitch_weights,
                          std::string net24_definition, std::string net24_weights,
                          std::string net48_definition, std::string net48_weights,
                          std::string netLoc_definition, std::string netLoc_weights,

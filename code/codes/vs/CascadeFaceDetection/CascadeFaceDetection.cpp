@@ -5,7 +5,7 @@
 #include "pyboostcvconverter.hpp"
 
 using namespace std;
-std::shared_ptr<caffe::CaffeBinding> kCaffeBinding = std::make_shared<caffe::CaffeBinding>();
+caffe::CaffeBinding* kCaffeBinding = new caffe::CaffeBinding();
 
 namespace FaceInception {
   CascadeCNN* cascade;
@@ -49,15 +49,17 @@ namespace FaceInception {
   }
 
   CascadeFaceDetection::CascadeFaceDetection(std::string net12_definition, std::string net12_weights,
+                                             std::string net12_stitch_definition, std::string net12_stitch_weights,
                                              std::string net24_definition, std::string net24_weights,
                                              std::string net48_definition, std::string net48_weights,
                                              std::string netLoc_definition, std::string netLoc_weights,
                                              int gpu_id) {
     cascade = new CascadeCNN(net12_definition, net12_weights,
-                         net24_definition, net24_weights,
-                         net48_definition, net48_weights,
-                         netLoc_definition, netLoc_weights,
-                         gpu_id);
+                             net12_stitch_definition, net12_stitch_weights,
+                             net24_definition, net24_weights,
+                             net48_definition, net48_weights,
+                             netLoc_definition, netLoc_weights,
+                             gpu_id);
   }
 
   std::vector<FaceInformation> CascadeFaceDetection::Predict(cv::Mat& input_image, double min_confidence, double min_face) {
@@ -89,6 +91,6 @@ namespace FaceInception {
 
   CascadeFaceDetection::~CascadeFaceDetection() {
     delete cascade;
-    kCaffeBinding = nullptr;
+    delete kCaffeBinding;
   }
 }

@@ -8,8 +8,9 @@ import CascadeFaceDetection
 
 model_folder = "D:/face project/MTCNN_face_detection_alignment/code/codes/MTCNNv2/model/"
 
-print "loading model from" + model_folder + "..."
+print "loading model from " + model_folder + "..."
 CascadeCNN = CascadeFaceDetection.CascadeCNN(model_folder + "det1-memory.prototxt", model_folder + "det1.caffemodel",
+                     model_folder + "det1-memory-stitch.prototxt", model_folder + "det1.caffemodel",
                      model_folder + "det2-memory.prototxt", model_folder + "det2.caffemodel",
                      model_folder + "det3-memory.prototxt", model_folder + "det3.caffemodel",
                      model_folder + "det4-memory.prototxt", model_folder + "det4.caffemodel",

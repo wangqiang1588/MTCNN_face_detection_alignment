@@ -11,7 +11,7 @@
 #include "boost/make_shared.hpp"
 #include "TestFaceDetection.inc.h"
 
-std::shared_ptr<caffe::CaffeBinding> kCaffeBinding = std::make_shared<caffe::CaffeBinding>();
+caffe::CaffeBinding* kCaffeBinding = new caffe::CaffeBinding();
 
 using namespace FaceInception;
 
@@ -170,10 +170,10 @@ int main(int argc, char* argv[])
                      0);
   //CaptureDemo(cascade);
 
-  double min_face_size = 12;
+  double min_face_size = 24;
 
   //ScanList("H:\\lfw\\list.txt", cascade);
-  Mat image = imread("D:\\face project\\WIDER\\face_detection\\test_image.jpg");
+  Mat image = imread("D:\\face project\\images\\08.jpg");
   
   //Mat image = imread("G:\\WIDER\\face_detection\\pack\\1[00_00_26][20160819-181452-0].BMP");
   //Mat image = imread("D:\\face project\\FDDB\\2002/07/25/big/img_1047.jpg");
@@ -195,7 +195,7 @@ int main(int argc, char* argv[])
 
   for (int i = 0; i < result.size(); i++) {
     //cout << "face box:" << result[i].first << " confidence:" << result[i].second << endl;
-    rectangle(image, result[i].first, Scalar(255, 0, 0), 4);
+    rectangle(image, result[i].first, Scalar(255, 0, 0), 2);
     if (points.size() >= i + 1) {
       for (int p = 0; p < 5; p++) {
         circle(image, points[i][p], 2, Scalar(0, 255, 255), -1);
@@ -208,7 +208,8 @@ int main(int argc, char* argv[])
   imshow("final", image);
   waitKey(0);
   //imwrite("output.jpg", image);
-  TestFDDBPrecision(cascade, "D:\\face project\\FDDB\\", true, true);
+  //TestFDDBPrecision(cascade, "D:\\face project\\FDDB\\", true, true);
+  delete kCaffeBinding;
   system("pause");
 	return 0;
 }

@@ -557,7 +557,7 @@ namespace FaceInception {
 
   //Only support 2 scaling
   Mat getPyramidStitchingImage2(Mat& input_image, std::vector<std::pair<Rect, double>>& location_and_scale, double scaling = 0.707,
-                                Scalar background_color = Scalar(0,0,0), int min_side = 12, int interval = 4) {
+                                Scalar background_color = Scalar(0,0,0), int min_side = 12, int interval = 2) {
     using namespace std;
     bool stitch_x = input_image.cols < input_image.rows;
     Size current_size = input_image.size();
