@@ -71,11 +71,31 @@ namespace FaceInception {
       std::chrono::time_point<std::chrono::system_clock> t0 = std::chrono::system_clock::now();
       Mat start_image = input_image;
       if (start_scale != 1) resize(start_image, start_image, Size(0, 0), start_scale, start_scale);
-      if (start_image.rows > 800 || start_image.cols > 800) {
-        cout << "Performance Warning: Do not use pyramid stitching in big resolution images!" << endl;
-        cout << "Decrease the resolution automatically..." << endl;
-        start_scale = 800.0 / (double)start_image.cols;
-        resize(start_image, start_image, Size(800, 800 * start_image.rows / start_image.cols));
+      vector<pair<Rect2d, float>> accumulate_rects;
+      
+      while (start_image.rows > 100 || start_image.cols > 100) {//This number depends on how much GPU memory you have. Please test and modify it to get maximal speed.
+        //cout << "Performance Warning: Do not use pyramid stitching in big resolution images!" << endl;
+        //cout << "Decrease the resolution automatically..." << endl;
+        auto net12output = kCaffeBinding->Forward({ start_image }, net12);
+        if (!(net12output["bounding_box"].size[1] == 1 && net12output["bounding_box"].data[0] == 0)) {
+          vector<pair<Rect2d, float>> before_nms;
+          for (int i = 0; i < net12output["bounding_box"].size[1]; i++) {
+            Rect2d this_rect = Rect2d(net12output["bounding_box"].data[i * 5 + 1] / start_scale, net12output["bounding_box"].data[i * 5] / start_scale,
+                                      net12output["bounding_box"].data[i * 5 + 3] / start_scale, net12output["bounding_box"].data[i * 5 + 2] / start_scale);
+            before_nms.push_back(make_pair(this_rect, net12output["bounding_box"].data[i * 5 + 4]));
+          }
+          if (do_nms && before_nms.size() > 1) {
+            vector<int> picked = nms_max(before_nms, 0.5);
+            for (auto p : picked) {
+              accumulate_rects.push_back(before_nms[p]);
+            }
+          }
+          else {
+            accumulate_rects.insert(accumulate_rects.end(), before_nms.begin(), before_nms.end());
+          }
+        }
+        start_scale *= scale_decay_;
+        resize(input_image, start_image, Size(0, 0), start_scale, start_scale);
       }
       std::vector<std::pair<Rect, double>> location_and_scale;
       Mat big_image = getPyramidStitchingImage2(start_image, location_and_scale);
@@ -92,7 +112,7 @@ namespace FaceInception {
       Mat stitch_image;
       merge(vector<Mat>{ stitch_image_receptive_field, stitch_image_y, stitch_image_x }, stitch_image);
       kCaffeBinding->SetMemoryDataLayer("stitch_data", { stitch_image }, net12_stitch);
-      auto net12output = kCaffeBinding->Forward({ big_image }, net12);
+      auto net12output = kCaffeBinding->Forward({ big_image }, net12_stitch);
 
       //Mat stitch_image_x_trans = Mat::zeros((big_image.cols - 12 + 1) / 2 + 1, (big_image.rows - 12 + 1) / 2 + 1, CV_32FC1);
       //stitch_image_x_trans.data = (uchar *)(net12output["conv4-2"].data + 1 * stitch_image_x_trans.rows * stitch_image_x_trans.cols);
@@ -103,9 +123,6 @@ namespace FaceInception {
       //cout << "estimated output size:" << stitch_image_x.size() << endl;
       //cout << "real output size:" << net12output["bb_map"].size[2] << " " << net12output["bb_map"].size[3] << endl;
 
-
-      vector<pair<Rect2d, float>> accumulate_rects;
-      accumulate_rects.reserve(net12output["bounding_box"].size[1]);
       if (!(net12output["bounding_box"].size[1] == 1 && net12output["bounding_box"].data[0] == 0)) {
         for (int i = 0; i < net12output["bounding_box"].size[1]; i++) {
           Rect2d this_rect = Rect2d(net12output["bounding_box"].data[i * 5 + 1], net12output["bounding_box"].data[i * 5],
@@ -389,7 +406,7 @@ namespace FaceInception {
                                              bool output_points = false, vector<vector<Point2d>>& points = vector<vector<Point2d>>()) {
       Mat clone_image = input_image.clone();//for drawing
       std::chrono::time_point<std::chrono::system_clock> p0 = std::chrono::system_clock::now();
-      auto proposal = getNet12Proposal(clone_image, 0.6, start_scale, do_nms, nms_threshold);
+      auto proposal = getNet12ProposalAcc(clone_image, 0.6, start_scale, do_nms, nms_threshold);
       std::chrono::time_point<std::chrono::system_clock> p1 = std::chrono::system_clock::now();
       cout << "proposal time:" << (float)std::chrono::duration_cast<std::chrono::microseconds>(p1 - p0).count() / 1000 << "ms" << endl;
       cout << "proposal: " << proposal.size() << endl;

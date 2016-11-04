@@ -163,6 +163,7 @@ int main(int argc, char* argv[])
   //                   "G:\\WIDER\\face_detection\\bak3\\cascade_48_memory_full.prototxt", "G:\\WIDER\\face_detection\\bak3\\cascade48-_iter_225000.caffemodel");
   string model_folder = "D:\\face project\\MTCNN_face_detection_alignment\\code\\codes\\MTCNNv2\\model\\";
   CascadeCNN cascade(model_folder+"det1-memory.prototxt", model_folder + "det1.caffemodel",
+                     model_folder + "det1-memory-stitch.prototxt", model_folder + "det1.caffemodel",
                      model_folder + "det2-memory.prototxt", model_folder + "det2.caffemodel",
                      model_folder + "det3-memory.prototxt", model_folder + "det3.caffemodel",
                      model_folder + "det4-memory.prototxt", model_folder + "det4.caffemodel",
