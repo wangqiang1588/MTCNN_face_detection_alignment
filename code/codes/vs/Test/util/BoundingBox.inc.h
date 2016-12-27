@@ -354,18 +354,26 @@ namespace FaceInception {
     int picked_n = 0;
     std::vector<int> picked(n);
     while (map.size() != 0) {
+      auto last_item = map.rbegin();
       int last = map.rbegin()->second; // get the index of maximum score value
+      //std::cout << map.rbegin()->first << " " << last << std::endl;
       picked[picked_n] = last;
       picked_n++;
 
       for (ScoreMapper::iterator it = map.begin(); it != map.end();) {
         int idx = it->second;
         double x1 = std::max<double>(rects[idx].first.x, rects[last].first.x);
-        double y1 = std::max<double>(rects[idx].first.y, rects[last].first.y);
         double x2 = std::min<double>(rects[idx].first.x + rects[idx].first.width, rects[last].first.x + rects[last].first.width);
+        double w = x2 - x1;
+        if (w <= 0) {
+          it++; continue;
+        }
+        double y1 = std::max<double>(rects[idx].first.y, rects[last].first.y);
         double y2 = std::min<double>(rects[idx].first.y + rects[idx].first.height, rects[last].first.y + rects[last].first.height);
-        double w = std::max<double>(0., x2 - x1);
-        double h = std::max<double>(0., y2 - y1);
+        double h = y2 - y1;
+        if (h <= 0) {
+          it++; continue;
+        }
         double ov;
         switch (type) {
         case IoU_MAX:

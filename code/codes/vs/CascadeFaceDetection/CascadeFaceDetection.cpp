@@ -89,6 +89,21 @@ namespace FaceInception {
     return pyopencv_from_face_info_vec(faces);
   }
 
+  PyObject* CascadeFaceDetection::ForceGetLandmark(PyObject* input, PyObject * CoarseRect) {
+    Mat input_image;
+    ERRWRAP2(input_image = FaceInception::fromNDArrayToMat(input));
+    Rect2d r;
+    PyArg_ParseTuple(CoarseRect, "dddd", &r.x, &r.y, &r.width, &r.height);
+    cout << r << endl;
+    vector<vector<Point2d>> points;
+    auto rect_and_score = cascade->ForceGetLandmark(input_image, r, points);
+    vector<FaceInformation> result;
+    for (int i = 0; i < rect_and_score.size(); i++) {
+      result.push_back(FaceInformation{ rect_and_score[i].first, rect_and_score[i].second, points[i] });
+    }
+    return pyopencv_from_face_info_vec(result);
+  }
+
   CascadeFaceDetection::~CascadeFaceDetection() {
     delete cascade;
     delete kCaffeBinding;

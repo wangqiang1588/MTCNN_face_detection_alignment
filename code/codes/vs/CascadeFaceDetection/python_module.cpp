@@ -39,6 +39,7 @@ namespace FaceInception {
 
         std::vector<FaceInformation>(CascadeFaceDetection::*Predict_func0)(cv::Mat&, double, double) = &CascadeFaceDetection::Predict;
         PyObject*(CascadeFaceDetection::*Predict_func1)(PyObject*, PyObject*, PyObject*) = &CascadeFaceDetection::Predict;
+        
 
         class_<CascadeFaceDetection>("CascadeCNN", init<std::string, std::string,
                                      std::string, std::string,
@@ -46,7 +47,8 @@ namespace FaceInception {
                                      std::string, std::string,
                                      std::string, std::string,
                                      int>())
-          .def("Predict", Predict_func1);
+          .def("Predict", Predict_func1)
+          .def("ForceGetLandmark", &CascadeFaceDetection::ForceGetLandmark);
     }
 
 } //end namespace FaceInception

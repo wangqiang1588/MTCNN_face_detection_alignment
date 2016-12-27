@@ -27,6 +27,7 @@ namespace FaceInception {
     std::vector<FaceInformation> Predict(cv::Mat& input_image, double min_confidence = 0.96, double min_face = 24.0);
     PyObject* Predict(PyObject* input);
     PyObject* Predict(PyObject* input, PyObject * min_confidence, PyObject * min_face);
+    PyObject* ForceGetLandmark(PyObject* input, PyObject * CoarseRect);
     ~CascadeFaceDetection();
   };
 }
