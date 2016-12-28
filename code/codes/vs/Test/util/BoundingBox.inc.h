@@ -362,6 +362,13 @@ namespace FaceInception {
 
       for (ScoreMapper::iterator it = map.begin(); it != map.end();) {
         int idx = it->second;
+        if (idx == last) {
+          ScoreMapper::iterator tmp = it;
+          tmp++;
+          map.erase(it);
+          it = tmp;
+          continue;
+        }
         double x1 = std::max<double>(rects[idx].first.x, rects[last].first.x);
         double x2 = std::min<double>(rects[idx].first.x + rects[idx].first.width, rects[last].first.x + rects[last].first.width);
         double w = x2 - x1;
