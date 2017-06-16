@@ -31,6 +31,8 @@ if(UNIX OR APPLE)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wall")
 endif()
 
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
 SET(SOURCE_FILES "")
 list(APPEND SOURCE_FILES CascadeFaceDetection.cpp)
 list(APPEND SOURCE_FILES python_module.cpp)
