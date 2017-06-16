@@ -6,7 +6,7 @@
 //
 // calcRect, modernPosit are copied from AFLW toolkit, which is available for non-commercial research purposes only.
 #pragma once
-#include <opencv2\opencv.hpp>
+#include <opencv2/opencv.hpp>
 
 using namespace cv;
 #undef assert

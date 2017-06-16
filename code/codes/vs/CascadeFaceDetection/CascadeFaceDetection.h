@@ -6,7 +6,7 @@
 #define CASCADE_DLL __declspec(dllimport)
 #endif
 
-#include <opencv2\opencv.hpp>
+#include <opencv2/opencv.hpp>
 #include <Python.h>
 
 namespace FaceInception {
