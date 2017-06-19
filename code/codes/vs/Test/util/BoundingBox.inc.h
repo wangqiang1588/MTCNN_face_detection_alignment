@@ -354,7 +354,7 @@ namespace FaceInception {
     int picked_n = 0;
     std::vector<int> picked(n);
     while (map.size() != 0) {
-      auto last_item = map.rbegin();
+    //  auto last_item = map.rbegin();
       int last = map.rbegin()->second; // get the index of maximum score value
       //std::cout << map.rbegin()->first << " " << last << std::endl;
       picked[picked_n] = last;
@@ -558,7 +558,7 @@ namespace FaceInception {
 
   @sa  warpPerspective, resize, remap, getRectSubPix, transform
   */
-  Mat cropImage(Mat& input_image, Rect2d roi, Size2d target_size, int flags = 1, int borderMode = 0, Scalar& borderValue = Scalar(0)) {
+  Mat cropImage(Mat& input_image, Rect2d roi, Size2d target_size, int flags = 1, int borderMode = 0, const Scalar& borderValue = Scalar(0)) {
     //Point2f srcPoints[4] = { Point2f(roi.x, roi.y), Point2f(roi.x + roi.width,roi.y), Point2f(roi.x,roi.y + roi.height),Point2f(roi.x + roi.width,roi.y + roi.height) };
     //Point2f dstPoints[4] = { Point2f(0,0), Point2f(target_size.width,0),Point2f(0, target_size.height), Point2f(target_size.width, target_size.height) };
     //Mat M2 = getAffineTransform(srcPoints, dstPoints);
@@ -576,7 +576,7 @@ namespace FaceInception {
     using namespace std;
     bool stitch_x = input_image.cols < input_image.rows;
     Size current_size = input_image.size();
-    Point left_top = Point(0, 0);
+ //   Point left_top = Point(0, 0);
     int width, height;
     if (stitch_x) {
       width = ceil(input_image.cols * (1 + scaling)) + interval * 2;
