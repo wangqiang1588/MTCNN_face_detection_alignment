@@ -262,7 +262,7 @@ namespace FaceInception {
     vector<pair<Rect2d, float>> getNet24Refined(vector<Mat> sub_images, vector<Rect2d> image_boxes, double min_confidence = 0.7,
                                                 bool do_nms = true, double nms_threshold = 0.3,
                                                 int batch_size = 500,
-                                                bool output_points = false, vector<vector<Point2d>>& points = vector<vector<Point2d>>()) {
+                                                bool output_points = false, const vector<vector<Point2d>>& points = vector<vector<Point2d>>()) {
       int num = sub_images.size();
       if (num == 0) return vector<pair<Rect2d, float>>();
       assert(sub_images[0].cols == 24 && sub_images[0].rows == 24);
@@ -317,7 +317,7 @@ namespace FaceInception {
     vector<pair<Rect2d, float>> getNet48Final(vector<Mat> sub_images, vector<Rect2d> image_boxes, double min_confidence = 0.7,
                                               bool do_nms = true, double nms_threshold = 0.3,
                                               int batch_size = 500,
-                                              bool output_points = false, vector<vector<Point2d>>& points = vector<vector<Point2d>>()) {
+                                              bool output_points = false, const vector<vector<Point2d>>& points = vector<vector<Point2d>>()) {
       int num = sub_images.size();
       if (num == 0) return vector<pair<Rect2d, float>>();
       assert(sub_images[0].rows == 48 && sub_images[0].cols == 48);
@@ -413,7 +413,7 @@ namespace FaceInception {
 
     vector<pair<Rect2d, float>> GetDetection(Mat& input_image, double start_scale = 1, double min_confidence = 0.995,
                                              bool do_nms = true, double nms_threshold = 0.7,
-                                             bool output_points = false, vector<vector<Point2d>>& points = vector<vector<Point2d>>()) {
+                                             bool output_points = false,const vector<vector<Point2d>>& points = vector<vector<Point2d>>()) {
       Mat clone_image = input_image.clone();//for drawing
       //std::chrono::time_point<std::chrono::system_clock> p0 = std::chrono::system_clock::now();
       auto proposal = getNet12ProposalAcc(clone_image, 0.6, start_scale, do_nms, nms_threshold);
@@ -475,7 +475,7 @@ namespace FaceInception {
       return final;
     }
 
-    vector<pair<Rect2d, float>> ForceGetLandmark(Mat& input_image, Rect2d CoarseRect, vector<vector<Point2d>>& points = vector<vector<Point2d>>()) {
+    vector<pair<Rect2d, float>> ForceGetLandmark(Mat& input_image, Rect2d CoarseRect, const vector<vector<Point2d>>& points = vector<vector<Point2d>>()) {
       make_rect_square(CoarseRect);
       Mat sub_image = cropImage(input_image, CoarseRect, Size(48, 48), INTER_LINEAR, BORDER_CONSTANT, Scalar(0));
       auto final = getNet48Final({ sub_image }, { CoarseRect }, 0, true, 0.7, 500, true, points);
