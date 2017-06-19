@@ -1,10 +1,15 @@
 #pragma once
 
-#ifdef CASCADEDETECTION_EXPORTS
-#define CASCADE_DLL __declspec(dllexport)
+#ifdef _MSC_VER
+ #ifdef CASCADEDETECTION_EXPORTS
+  #define CASCADE_DLL __declspec(dllexport)
+ #else
+  #define CASCADE_DLL __declspec(dllimport)
+ #endif
 #else
-#define CASCADE_DLL __declspec(dllimport)
+ #define CASCADE_DLL
 #endif
+
 
 #include <opencv2/opencv.hpp>
 #include <Python.h>
