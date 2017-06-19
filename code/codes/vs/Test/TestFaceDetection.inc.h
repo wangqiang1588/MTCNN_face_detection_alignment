@@ -10,8 +10,8 @@
 #pragma once
 #include <fstream>
 #include <thread>
-#include <opencv2\opencv.hpp>
-#include <opencv2\cudaimgproc.hpp>
+#include <opencv2/opencv.hpp>
+#include <opencv2/cudaimgproc.hpp>
 #include "CaffeBinding.h"
 #include <boost/shared_ptr.hpp>
 
@@ -32,7 +32,9 @@
 #pragma comment(lib,"opencv_cudaobjdetect310.lib")
 #pragma comment(lib,"opencv_video310.lib")
 #else
+#ifdef _MSC_VER
 #pragma comment(lib,"opencv_world310.lib")
+#endif
 #endif
 extern caffe::CaffeBinding* kCaffeBinding;
 
