@@ -314,7 +314,7 @@ namespace FaceInception {
       return result;
     }
 
-    vector<pair<Rect2d, float>> getNet48Final(vector<Mat> sub_images, vector<Rect2d> image_boxes, double min_confidence = 0.7,
+    vector<pair<Rect2d, float> > getNet48Final(vector<Mat> sub_images, vector<Rect2d> image_boxes, double min_confidence = 0.7,
                                               bool do_nms = true, double nms_threshold = 0.3,
                                               int batch_size = 500,
                                               bool output_points = false, const vector<vector<Point2d>>& points = vector<vector<Point2d>>()) {
@@ -373,8 +373,8 @@ namespace FaceInception {
       return result;
     }
 
-    vector<vector<Point2d>> GetFineLandmark(Mat& input_image, vector<vector<Point2d>>& coarse_landmarks,
-                                            vector<pair<Rect2d, float>>& face_rects, double width_factor = 0.25) {
+    vector<vector<Point2d>> GetFineLandmark(Mat& input_image, const vector<vector<Point2d> >& coarse_landmarks,
+                                            const vector<pair<Rect2d, float> >& face_rects = vector<pair<Rect2d, float> >(), double width_factor = 0.25) {
       vector<Mat> sub_images;
       int face_num = face_rects.size();
       for (int n = 0; n < face_num; n++) {
@@ -404,8 +404,9 @@ namespace FaceInception {
       for (int n = 0; n < face_num; n++) {
         double width = max(face_rects[n].first.width, face_rects[n].first.height) * width_factor;
         for (int p = 0; p < 5; p++) {
-          coarse_landmarks[n][p].x = coarse_landmarks[n][p].x - width / 2 + netLocOutput["fc5_" + to_string(p+1)].data[2 * n + 0] * width;
-          coarse_landmarks[n][p].y = coarse_landmarks[n][p].y - width / 2 + netLocOutput["fc5_" + to_string(p+1)].data[2 * n + 1] * width;
+          Point2d* point = & coarse_landmarks[n][p];
+          point->x = coarse_landmarks[n][p].x - width / 2 + netLocOutput["fc5_" + to_string(p+1)].data[2 * n + 0] * width;
+          point->y = coarse_landmarks[n][p].y - width / 2 + netLocOutput["fc5_" + to_string(p+1)].data[2 * n + 1] * width;
         }
       }
       return coarse_landmarks;
@@ -461,28 +462,28 @@ namespace FaceInception {
         sub_images48.push_back(sub_image);
         image_boxes48.push_back(p.first);
       }
-      auto final = getNet48Final(sub_images48, image_boxes48, min_confidence, do_nms, nms_threshold, 500, output_points, points);
+      auto final_val = getNet48Final(sub_images48, image_boxes48, min_confidence, do_nms, nms_threshold, 500, output_points, points);
       //std::chrono::time_point<std::chrono::system_clock> p4 = std::chrono::system_clock::now();
       //cout << "final time:" << (float)std::chrono::duration_cast<std::chrono::microseconds>(p4 - p3).count() / 1000 << "ms" << endl;
       //cout << "final: " << final.size() << endl;
       std::chrono::time_point<std::chrono::system_clock> p5 = std::chrono::system_clock::now();
-      if (output_points && final.size() > 0) {
-        GetFineLandmark(input_image, points, final);
+      if (output_points && final_val.size() > 0) {
+        GetFineLandmark(input_image, points,final_val);
         //p5 = std::chrono::system_clock::now();
         //cout << "fine landmark time:" << (float)std::chrono::duration_cast<std::chrono::microseconds>(p5 - p4).count() / 1000 << "ms" << endl;
       }
       //cout<<"total time:"<< (float)std::chrono::duration_cast<std::chrono::microseconds>(p5 - p0).count() / 1000 << "ms" << endl;
-      return final;
+      return final_val;
     }
 
-    vector<pair<Rect2d, float>> ForceGetLandmark(Mat& input_image, Rect2d CoarseRect, const vector<vector<Point2d>>& points = vector<vector<Point2d>>()) {
+    vector<pair<Rect2d, float> > ForceGetLandmark(Mat& input_image, Rect2d CoarseRect, const vector<vector<Point2d>>& points = vector<vector<Point2d>>()) {
       make_rect_square(CoarseRect);
       Mat sub_image = cropImage(input_image, CoarseRect, Size(48, 48), INTER_LINEAR, BORDER_CONSTANT, Scalar(0));
-      auto final = getNet48Final({ sub_image }, { CoarseRect }, 0, true, 0.7, 500, true, points);
-      if (final.size() > 0) {
-        GetFineLandmark(input_image, points, final);
+      auto final_val = getNet48Final({ sub_image }, { CoarseRect }, 0, true, 0.7, 500, true, points);
+      if (final_val.size() > 0) {
+        GetFineLandmark(input_image, points,final_val);
       }
-      return final;
+      return final_val;
     }
 
     int net12, net12_stitch, net24, net48, netLoc;

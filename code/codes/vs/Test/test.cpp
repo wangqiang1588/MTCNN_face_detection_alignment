@@ -6,7 +6,9 @@
 #include <chrono>
 #include <cstdlib>
 #include <memory>
-#include <Windows.h>
+#ifdef _MSC_VER
+ #include <Windows.h>
+#endif
 
 #include "boost/make_shared.hpp"
 #include "TestFaceDetection.inc.h"
@@ -30,7 +32,11 @@ int CaptureDemo(CascadeCNN cascade) {
     cap >> frame;
     if (frame.empty()) {
       cout << "cannot read from camera!" << endl;
+#ifdef _MSC_VER
       Sleep(100);
+#else
+      usleep(100);
+#endif
       continue;
     }
     vector<vector<Point2d>> points;
