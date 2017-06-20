@@ -9,19 +9,6 @@ endif()
 # ---[ CascadeFaceDetection project
 PROJECT(CascadeFaceDetection C CXX)
 
-SET(USE_OPENCV ON)
-SET(USE_PYTHON ON)
-
-# ---[ Using cmake scripts and modules
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
-
-include(cmake/Utils.cmake)
-
-# ---[ Dependencies
-INCLUDE(cmake/Dependencies.cmake)
-
-#message(STATUS "MTCNN_INCLUDE_DIRS='${MTCNN_INCLUDE_DIRS}'")
-
 list(APPEND MTCNN_INCLUDE_DIRS "${CAFFE_WINDOWS_PATH}/windows/caffe.binding")
 
 INCLUDE_DIRECTORIES(${MTCNN_INCLUDE_DIRS})
@@ -31,7 +18,7 @@ if(UNIX OR APPLE)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wall")
 endif()
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fpermissive")
 
 SET(SOURCE_FILES "")
 list(APPEND SOURCE_FILES CascadeFaceDetection.cpp)
@@ -43,4 +30,11 @@ else()
   list(APPEND SOURCE_FILES pyboost_cv3_converter.cpp)
 endif()
 
+SET(CASCADE_LINK_LIBS,${OpenCV_LIBS})
+list(APPEND CASCADE_LINK_LIBS "${CAFFE_WINDOWS_PATH}/lib/libcaffe.so")
+
+LINK_LIBRARIES(${PROJECT_NAME} ${CASCADE_LINK_LIBS})
+
 ADD_LIBRARY(${PROJECT_NAME} ${SOURCE_FILES})
+
+

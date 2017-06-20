@@ -25,6 +25,23 @@ ExternalProject_Add(caffe-windows
 
 SET(CAFFE_WINDOWS_PATH "${PROJECT_SOURCE_DIR}/caffe/src/caffe-windows")
 
+SET(USE_OPENCV ON)
+SET(USE_PYTHON ON)
+
+# ---[ Using cmake scripts and modules
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
+
+include(cmake/Utils.cmake)
+
+# ---[ Dependencies
+INCLUDE(cmake/Dependencies.cmake)
+
+#message(STATUS "MTCNN_INCLUDE_DIRS='${MTCNN_INCLUDE_DIRS}'")
+
+message(STATUS "OpenCV_LIBS='${OpenCV_LIBS}'")
+message(STATUS "OpenCV_CONFIG_PATH='${OpenCV_CONFIG_PATH}'")
+
+
 ADD_SUBDIRECTORY(CascadeFaceDetection)
 
 ADD_SUBDIRECTORY(Test)
