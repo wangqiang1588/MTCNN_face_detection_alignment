@@ -31,8 +31,8 @@ else()
 endif()
 
 SET(CASCADE_LINK_LIBS,${OpenCV_LIBS})
-list(APPEND CASCADE_LINK_LIBS "${CAFFE_WINDOWS_PATH}/lib/libcaffe.so")
-list(APPEND CASCADE_LINK_LIBS "${CAFFE_WINDOWS_PATH}/windows/caffe.binding/lib/caffe_binding.so")
+list(APPEND CASCADE_LINK_LIBS "${CAFFE_WINDOWS_PATH}/lib/libcaffe-d.so")
+list(APPEND CASCADE_LINK_LIBS "${CAFFE_WINDOWS_PATH}/windows/caffe.binding/lib/caffe_binding-d.so")
 
 LINK_LIBRARIES(${PROJECT_NAME} ${CASCADE_LINK_LIBS})
 

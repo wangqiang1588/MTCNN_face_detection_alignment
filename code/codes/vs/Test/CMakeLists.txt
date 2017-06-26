@@ -21,8 +21,8 @@ SET(MTCNN_INCLUDE_DIRS "${CAFFE_WINDOWS_PATH}/windows/caffe.binding")
 INCLUDE_DIRECTORIES(${MTCNN_INCLUDE_DIRS})
 
 SET(TEST_LINK_LIBS ${OpenCV_LIBS})
-list(APPEND TEST_LINK_LIBS ${CAFFE_WINDOWS_PATH}/lib/libcaffe.so)
-list(APPEND TEST_LINK_LIBS "${CAFFE_WINDOWS_PATH}/windows/caffe.binding/lib/caffe_binding.so")
+list(APPEND TEST_LINK_LIBS ${CAFFE_WINDOWS_PATH}/lib/libcaffe-d.so)
+list(APPEND TEST_LINK_LIBS "${CAFFE_WINDOWS_PATH}/windows/caffe.binding/lib/caffe_binding-d.so")
 
 LINK_LIBRARIES(${PROJECT_NAME} ${TEST_LINK_LIBS})
 

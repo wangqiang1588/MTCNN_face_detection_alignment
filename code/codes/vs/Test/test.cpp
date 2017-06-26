@@ -167,7 +167,7 @@ int main(int argc, char* argv[])
   //CascadeCNN cascade("G:\\WIDER\\face_detection\\bak3\\cascade_12_memory_nobn1.prototxt", "G:\\WIDER\\face_detection\\bak3\\cascade12-_iter_490000.caffemodel",
   //                   "G:\\WIDER\\face_detection\\bak3\\cascade_24_memory_full.prototxt", "G:\\WIDER\\face_detection\\bak3\\cascade24-_iter_145000.caffemodel",
   //                   "G:\\WIDER\\face_detection\\bak3\\cascade_48_memory_full.prototxt", "G:\\WIDER\\face_detection\\bak3\\cascade48-_iter_225000.caffemodel");
-  string model_folder = "D:\\face project\\MTCNN_face_detection_alignment\\code\\codes\\MTCNNv2\\model\\";
+  string model_folder = "/home/longsky/Source/MTCNN_face_detection_alignment/code/codes/MTCNNv2/model/";
   CascadeCNN cascade(model_folder+"det1-memory.prototxt", model_folder + "det1.caffemodel",
                      model_folder + "det1-memory-stitch.prototxt", model_folder + "det1.caffemodel",
                      model_folder + "det2-memory.prototxt", model_folder + "det2.caffemodel",
@@ -179,7 +179,7 @@ int main(int argc, char* argv[])
   double min_face_size = 24;
 
   //ScanList("H:\\lfw\\list.txt", cascade);
-  Mat image = imread("D:\\face project\\images\\08.jpg");
+  Mat image = imread("/home/longsky/Source/MTCNN_face_detection_alignment/code/codes/vs/stitch_image.png");
   
   //Mat image = imread("G:\\WIDER\\face_detection\\pack\\1[00_00_26][20160819-181452-0].BMP");
   //Mat image = imread("D:\\face project\\FDDB\\2002/07/25/big/img_1047.jpg");
